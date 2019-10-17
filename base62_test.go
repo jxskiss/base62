@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	mathrand "math/rand"
+	"strings"
 	"testing"
 )
 
@@ -89,5 +90,52 @@ func Test_encoder_next(t *testing.T) {
 			break
 		}
 		x, hasMore = enc.next()
+	}
+}
+
+// ----------
+
+func Test_NewEncoding_panic(t *testing.T) {
+	func() {
+		encoder := "abcdef"
+		defer func() {
+			if r := recover(); r == nil {
+				t.Errorf("NewEncoding did not panic with encoder %q", encoder)
+			}
+		}()
+		_ = NewEncoding(encoder)
+	}()
+
+	func() {
+		encoder := []byte(encodeStd)
+		encoder[1] = '\n'
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("NewEncoding did not panic with encoder contains \\n")
+			}
+		}()
+		_ = NewEncoding(string(encoder))
+	}()
+
+	func() {
+		encoder := []byte(encodeStd)
+		encoder[1] = '\r'
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("NewEncoding did not panic with encoder contains \\r")
+			}
+		}()
+		_ = NewEncoding(string(encoder))
+	}()
+}
+
+func Test_Decode_CorruptInputError(t *testing.T) {
+	src := make([]byte, 256)
+	for i := range src {
+		src[i] = byte(i)
+	}
+	_, err := stdEncoding.Decode(src)
+	if err == nil || !strings.Contains(err.Error(), "illegal base62 data at input byte") {
+		t.Fatal("decoding invalid data did not return CorruptInputError")
 	}
 }

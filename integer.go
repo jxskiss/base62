@@ -2,16 +2,16 @@ package base62
 
 func (enc *Encoding) FormatInt(num int64) []byte {
 	dst := make([]byte, 0)
-	return AppendUint(dst, uint64(num))
+	return enc.AppendUint(dst, uint64(num))
 }
 
 func (enc *Encoding) FormatUint(num uint64) []byte {
 	dst := make([]byte, 0)
-	return AppendUint(dst, num)
+	return enc.AppendUint(dst, num)
 }
 
 func (enc *Encoding) AppendInt(dst []byte, num int64) []byte {
-	return AppendUint(dst, uint64(num))
+	return enc.AppendUint(dst, uint64(num))
 }
 
 func (enc *Encoding) AppendUint(dst []byte, num uint64) []byte {

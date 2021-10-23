@@ -109,13 +109,13 @@ func Benchmark_Base64_Decode(bb *testing.B) {
 	}
 }
 
-func Benchmark_Encode_Integer(bb *testing.B) {
+func Benchmark_EncodeInteger(bb *testing.B) {
 	for i := 0; i < bb.N; i++ {
 		_ = FormatUint(testInteger)
 	}
 }
 
-func Benchmark_Decode_Integer(bb *testing.B) {
+func Benchmark_DecodeInteger(bb *testing.B) {
 	for i := 0; i < bb.N; i++ {
 		_, _ = ParseUint(testEncodedInteger)
 	}

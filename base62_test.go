@@ -178,7 +178,7 @@ func Test_Decode_CorruptInputError(t *testing.T) {
 	for i := range src {
 		src[i] = byte(i)
 	}
-	_, err := stdEncoding.Decode(src)
+	_, err := StdEncoding.Decode(src)
 	if err == nil || !strings.Contains(err.Error(), "illegal base62 data at input byte") {
 		t.Fatal("decoding invalid data did not return CorruptInputError")
 	}

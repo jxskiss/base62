@@ -13,13 +13,15 @@ const (
 	mask5bits   = 0x1F // 00011111
 )
 
-const encodeStd = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-
+// An Encoding is a radix 62 encoding/decoding scheme, defined by a
+// 62-character alphabet.
 type Encoding struct {
 	encode    [base]byte
 	decodeMap [256]byte
 }
 
+// NewEncoding returns a new Encoding defined by the given alphabet,
+// which must be a 62-byte string that does not contain CR / LF ('\r', '\n').
 func NewEncoding(encoder string) *Encoding {
 	if len(encoder) != base {
 		panic("encoding alphabet is not 62-bytes long")
@@ -41,8 +43,7 @@ func NewEncoding(encoder string) *Encoding {
 	return e
 }
 
-var stdEncoding = NewEncoding(encodeStd)
-
+// Encode encodes src using the encoding enc, returns the encoded bytes.
 func (enc *Encoding) Encode(src []byte) []byte {
 	if len(src) == 0 {
 		return []byte{}
@@ -52,11 +53,15 @@ func (enc *Encoding) Encode(src []byte) []byte {
 	return encoder.encode(dst, enc.encode[:])
 }
 
+// EncodeToString returns a base62 string representation of src.
 func (enc *Encoding) EncodeToString(src []byte) string {
 	ret := enc.Encode(src)
 	return b2s(ret)
 }
 
+// EncodeToBuf encodes src using the encoding enc, appending the encoded
+// bytes to dst. If dst has not enough capacity, it copies dst and returns
+// the extended buffer.
 func (enc *Encoding) EncodeToBuf(dst []byte, src []byte) []byte {
 	if len(src) == 0 {
 		return []byte{}
@@ -128,6 +133,9 @@ func (e CorruptInputError) Error() string {
 	return "illegal base62 data at input byte " + strconv.FormatInt(int64(e), 10)
 }
 
+// Decode decodes src using the encoding enc, returns the decoded bytes.
+//
+// If src contains invalid base62 data, it will return nil and CorruptInputError.
 func (enc *Encoding) Decode(src []byte) ([]byte, error) {
 	if len(src) == 0 {
 		return []byte{}, nil
@@ -141,11 +149,17 @@ func (enc *Encoding) Decode(src []byte) ([]byte, error) {
 	return dst[idx:], nil
 }
 
+// DecodeString returns the bytes represented by the base62 string src.
 func (enc *Encoding) DecodeString(src string) ([]byte, error) {
 	b := s2b(src)
 	return enc.Decode(b)
 }
 
+// DecodeToBuf decodes src using the encoding enc, appending the decoded
+// bytes to dst. If dst has not enough capacity, it copies dst and returns
+// the extended buffer.
+//
+// If src contains invalid base62 data, it will return nil and CorruptInputError.
 func (enc *Encoding) DecodeToBuf(dst []byte, src []byte) ([]byte, error) {
 	if len(src) == 0 {
 		return []byte{}, nil
@@ -202,30 +216,6 @@ func (dec decoder) decode(dst []byte, decTable []byte) (int, error) {
 		dst[idx] = byte(b)
 	}
 	return idx, nil
-}
-
-func Encode(src []byte) []byte {
-	return stdEncoding.Encode(src)
-}
-
-func EncodeToString(src []byte) string {
-	return stdEncoding.EncodeToString(src)
-}
-
-func EncodeToBuf(dst []byte, src []byte) []byte {
-	return stdEncoding.EncodeToBuf(dst, src)
-}
-
-func Decode(src []byte) ([]byte, error) {
-	return stdEncoding.Decode(src)
-}
-
-func DecodeString(src string) ([]byte, error) {
-	return stdEncoding.DecodeString(src)
-}
-
-func DecodeToBuf(dst []byte, src []byte) ([]byte, error) {
-	return stdEncoding.DecodeToBuf(dst, src)
 }
 
 func b2s(b []byte) string {

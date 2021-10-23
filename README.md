@@ -19,14 +19,22 @@ benchmark results.
 ## Benchmark
 
 ```text
-Benchmark_Encode-12             10000000               193 ns/op
-Benchmark_Decode-12             20000000                68.4 ns/op
+Benchmark_Encode-12                      7054132               146.4 ns/op
+Benchmark_EncodeToString-12              8101567               146.2 ns/op
+Benchmark_Decode-12                     15481666                73.60 ns/op
+Benchmark_DecodeString-12               16301325                74.36 ns/op
 
-Benchmark_Encode_BigInt-12       1000000              1070 ns/op
+Benchmark_EncodeToBuf-12                 9724098               126.8 ns/op
+Benchmark_DecodeToBuf-12                97695962                12.21 ns/op
 
-Benchmark_Encode_Base64-12      20000000                59.7 ns/op
-Benchmark_Decode_Base64-12      20000000                62.3 ns/op
+Benchmark_Encode_Integer-12             29119437                41.30 ns/op
+Benchmark_Decode_Integer-12             120328183                9.917 ns/op
 
-Benchmark_Encode_Integer-12     30000000                44.4 ns/op
-Benchmark_Decode_Integer-12    200000000                 9.63 ns/op
+Benchmark_Encode_BigInt-12               1000000              1048 ns/op
+
+Benchmark_Base64_EncodeToString-12      19974897                57.41 ns/op
+Benchmark_Base64_DecodeString-12        19884616                55.09 ns/op
+
+Benchmark_Base64_Encode-12              68163142                17.93 ns/op
+Benchmark_Base64_Decode-12              41990004                28.25 ns/op
 ```

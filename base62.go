@@ -47,8 +47,9 @@ func (enc *Encoding) Encode(src []byte) []byte {
 	if len(src) == 0 {
 		return []byte{}
 	}
+	dst := make([]byte, 0, len(src)*9/5)
 	encoder := newEncoder(src)
-	return encoder.encode(enc.encode[:])
+	return encoder.encode(dst, enc.encode[:])
 }
 
 func (enc *Encoding) EncodeToString(src []byte) string {
@@ -56,14 +57,22 @@ func (enc *Encoding) EncodeToString(src []byte) string {
 	return b2s(ret)
 }
 
+func (enc *Encoding) EncodeToBuf(dst []byte, src []byte) []byte {
+	if len(src) == 0 {
+		return []byte{}
+	}
+	encoder := newEncoder(src)
+	return encoder.encode(dst, enc.encode[:])
+}
+
 type encoder struct {
-	b   []byte
+	src []byte
 	pos int
 }
 
 func newEncoder(src []byte) *encoder {
 	return &encoder{
-		b:   src,
+		src: src,
 		pos: len(src) * 8,
 	}
 }
@@ -84,11 +93,11 @@ func (enc *encoder) next() (byte, bool) {
 		}
 	}
 	shift := 8 - j - blen
-	b := enc.b[i] >> shift & (1<<blen - 1)
+	b := enc.src[i] >> shift & (1<<blen - 1)
 
 	if blen < 6 && pos > 0 {
 		blen1 := 6 - blen
-		b = b<<blen1 | enc.b[i+1]>>(8-blen1)
+		b = b<<blen1 | enc.src[i+1]>>(8-blen1)
 	}
 	if b&compactMask == compactMask {
 		if pos > 0 || b > mask5bits {
@@ -101,17 +110,16 @@ func (enc *encoder) next() (byte, bool) {
 	return b, pos > 0
 }
 
-func (enc *encoder) encode(encTable []byte) []byte {
-	ret := make([]byte, 0, len(enc.b)*8/5+1)
+func (enc *encoder) encode(dst []byte, encTable []byte) []byte {
 	x, hasMore := enc.next()
 	for {
-		ret = append(ret, encTable[x])
+		dst = append(dst, encTable[x])
 		if !hasMore {
 			break
 		}
 		x, hasMore = enc.next()
 	}
-	return ret
+	return dst
 }
 
 type CorruptInputError int64
@@ -124,8 +132,13 @@ func (enc *Encoding) Decode(src []byte) ([]byte, error) {
 	if len(src) == 0 {
 		return []byte{}, nil
 	}
+	dst := make([]byte, len(src)*6/8+1)
 	dec := decoder(src)
-	return dec.decode(enc.decodeMap[:])
+	idx, err := dec.decode(dst, enc.decodeMap[:])
+	if err != nil {
+		return nil, err
+	}
+	return dst[idx:], nil
 }
 
 func (enc *Encoding) DecodeString(src string) ([]byte, error) {
@@ -133,17 +146,39 @@ func (enc *Encoding) DecodeString(src string) ([]byte, error) {
 	return enc.Decode(b)
 }
 
+func (enc *Encoding) DecodeToBuf(dst []byte, src []byte) ([]byte, error) {
+	if len(src) == 0 {
+		return []byte{}, nil
+	}
+	oldCap, oldLen := cap(dst), len(dst)
+	possibleLen := len(src)*6/8 + 1
+	if oldCap < oldLen+possibleLen {
+		newBuf := make([]byte, oldLen, oldLen+possibleLen)
+		copy(newBuf, dst)
+		dst = newBuf
+	}
+	dec := decoder(src)
+	idx, err := dec.decode(dst[oldLen:cap(dst)], enc.decodeMap[:])
+	if err != nil {
+		return nil, err
+	}
+	if idx != 0 {
+		copy(dst[oldLen:cap(dst)], dst[oldLen+idx:cap(dst)])
+	}
+	dst = dst[:cap(dst)-idx]
+	return dst, nil
+}
+
 type decoder []byte
 
-func (dec decoder) decode(decTable []byte) ([]byte, error) {
-	ret := make([]byte, len(dec)*6/8+1)
-	idx := len(ret)
+func (dec decoder) decode(dst []byte, decTable []byte) (int, error) {
+	idx := len(dst)
 	pos := byte(0)
 	b := 0
 	for i, c := range dec {
 		x := decTable[c]
 		if x == 0xFF {
-			return nil, CorruptInputError(i)
+			return 0, CorruptInputError(i)
 		}
 		if i == len(dec)-1 {
 			b |= int(x) << pos
@@ -157,17 +192,16 @@ func (dec decoder) decode(decTable []byte) ([]byte, error) {
 		}
 		if pos >= 8 {
 			idx--
-			ret[idx] = byte(b)
+			dst[idx] = byte(b)
 			pos %= 8
 			b >>= 8
 		}
 	}
 	if pos > 0 {
 		idx--
-		ret[idx] = byte(b)
+		dst[idx] = byte(b)
 	}
-
-	return ret[idx:], nil
+	return idx, nil
 }
 
 func Encode(src []byte) []byte {
@@ -178,12 +212,20 @@ func EncodeToString(src []byte) string {
 	return stdEncoding.EncodeToString(src)
 }
 
+func EncodeToBuf(dst []byte, src []byte) []byte {
+	return stdEncoding.EncodeToBuf(dst, src)
+}
+
 func Decode(src []byte) ([]byte, error) {
 	return stdEncoding.Decode(src)
 }
 
 func DecodeString(src string) ([]byte, error) {
 	return stdEncoding.DecodeString(src)
+}
+
+func DecodeToBuf(dst []byte, src []byte) ([]byte, error) {
+	return stdEncoding.DecodeToBuf(dst, src)
 }
 
 func b2s(b []byte) string {

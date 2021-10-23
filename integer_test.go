@@ -11,7 +11,6 @@ func Test_FormatUint_ParseUint(t *testing.T) {
 	dst := FormatUint(x)
 
 	got, err := ParseUint(dst)
-	t.Log(string(got))
 	if err != nil {
 		t.Fatalf("failed parse uint, err = %v", err)
 	}
@@ -25,7 +24,6 @@ func Test_FormatUint_ParseInt(t *testing.T) {
 	dst := FormatInt(x)
 
 	got, err := ParseInt(dst)
-	t.Log(string(got))
 	if err != nil {
 		t.Fatalf("failed parse int, err = %v", err)
 	}

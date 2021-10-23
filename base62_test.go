@@ -72,6 +72,50 @@ func Test_EncodeDecode_RandomBytes(t *testing.T) {
 	}
 }
 
+func Test_EncodeToBuf(t *testing.T) {
+	buf := make([]byte, 0, 1000)
+	for i := 0; i < 10000; i++ {
+		src := make([]byte, 32+mathrand.Intn(100))
+		_, _ = rand.Read(src)
+		want := Encode(src)
+
+		got1 := EncodeToBuf(make([]byte, 0, 2), src)
+		if !bytes.Equal(want, got1) {
+			t.Fatal("incorrect result from EncodeToBuf")
+		}
+
+		got2 := EncodeToBuf(buf, src)
+		if !bytes.Equal(want, got2) {
+			t.Fatal("incorrect result from EncodeToBuf")
+		}
+	}
+}
+
+func TestDecodeToBuf(t *testing.T) {
+	buf := make([]byte, 0, 1000)
+	for i := 0; i < 10000; i++ {
+		src := make([]byte, 32+mathrand.Intn(100))
+		_, _ = rand.Read(src)
+		encoded := Encode(src)
+
+		got1, err := DecodeToBuf(make([]byte, 0, 2), encoded)
+		if err != nil {
+			t.Fatalf("failed DecodeToBuf, err = %v", err)
+		}
+		if !bytes.Equal(src, got1) {
+			t.Fatalf("incorrect result from DecodeToBuf, encoded = %v", encoded)
+		}
+
+		got2, err := DecodeToBuf(buf, encoded)
+		if err != nil {
+			t.Fatalf("failed DecodeToBuf, err = %v", err)
+		}
+		if !bytes.Equal(src, got2) {
+			t.Fatalf("incorrect result from DecodeToBuf, encoded = %v", encoded)
+		}
+	}
+}
+
 // ----------
 
 func Test_encoder_next(t *testing.T) {

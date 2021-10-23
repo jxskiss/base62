@@ -10,7 +10,7 @@ import (
 
 var testRandBytes = make([]byte, 16)
 var testEncodedBytes []byte
-var testEncodedBase64 string
+var testEncodedBase64 []byte
 var testInteger = uint64(math.MaxInt64)
 var testEncodedInteger = []byte("V8qRkBGKRiP")
 
@@ -19,7 +19,9 @@ func init() {
 		panic(err)
 	}
 	testEncodedBytes = Encode(testRandBytes)
-	testEncodedBase64 = base64.RawStdEncoding.EncodeToString(testRandBytes)
+
+	testEncodedBase64 = make([]byte, base64.RawStdEncoding.EncodedLen(len(testRandBytes)))
+	base64.RawStdEncoding.Encode(testEncodedBase64, testRandBytes)
 }
 
 func encodeWithBigInt(b []byte) []byte {
@@ -41,9 +43,36 @@ func Benchmark_Encode(bb *testing.B) {
 	}
 }
 
+func Benchmark_EncodeToString(bb *testing.B) {
+	for i := 0; i < bb.N; i++ {
+		_ = EncodeToString(testRandBytes)
+	}
+}
+
+func Benchmark_EncodeToBuf(bb *testing.B) {
+	buf := make([]byte, 0, 1000)
+	for i := 0; i < bb.N; i++ {
+		_ = EncodeToBuf(buf, testRandBytes)
+	}
+}
+
 func Benchmark_Decode(bb *testing.B) {
 	for i := 0; i < bb.N; i++ {
 		_, _ = Decode(testEncodedBytes)
+	}
+}
+
+func Benchmark_DecodeString(bb *testing.B) {
+	s := string(testEncodedBytes)
+	for i := 0; i < bb.N; i++ {
+		_, _ = DecodeString(s)
+	}
+}
+
+func Benchmark_DecodeToBuf(bb *testing.B) {
+	buf := make([]byte, 0, 1000)
+	for i := 0; i < bb.N; i++ {
+		_, _ = DecodeToBuf(buf, testRandBytes)
 	}
 }
 
@@ -53,15 +82,30 @@ func Benchmark_Encode_BigInt(bb *testing.B) {
 	}
 }
 
-func Benchmark_Encode_Base64(bb *testing.B) {
+func Benchmark_Base64_EncodeToString(bb *testing.B) {
 	for i := 0; i < bb.N; i++ {
 		_ = base64.RawStdEncoding.EncodeToString(testRandBytes)
 	}
 }
 
-func Benchmark_Decode_Base64(bb *testing.B) {
+func Benchmark_Base64_Encode(bb *testing.B) {
+	buf := make([]byte, 1000)
 	for i := 0; i < bb.N; i++ {
-		_, _ = base64.RawStdEncoding.DecodeString(testEncodedBase64)
+		base64.RawStdEncoding.Encode(buf, testRandBytes)
+	}
+}
+
+func Benchmark_Base64_DecodeString(bb *testing.B) {
+	s := string(testEncodedBase64)
+	for i := 0; i < bb.N; i++ {
+		_, _ = base64.RawStdEncoding.DecodeString(s)
+	}
+}
+
+func Benchmark_Base64_Decode(bb *testing.B) {
+	buf := make([]byte, 1000)
+	for i := 0; i < bb.N; i++ {
+		_, _ = base64.RawStdEncoding.Decode(buf, testEncodedBase64)
 	}
 }
 

@@ -11,6 +11,7 @@ const (
 	base        = 62
 	compactMask = 0x1E // 00011110
 	mask5bits   = 0x1F // 00011111
+	mask6bits   = 0x3F // 00111111
 )
 
 // An Encoding is a radix 62 encoding/decoding scheme, defined by a
@@ -45,12 +46,29 @@ func NewEncoding(encoder string) *Encoding {
 
 // Encode encodes src using the encoding enc, returns the encoded bytes.
 func (enc *Encoding) Encode(src []byte) []byte {
+	return enc._encodeV2(src)
+}
+
+// _encodeV1 is obsolete, it is here to make sure that the new
+// implementation is compatible with the old one.
+//
+// We don't want to break the programs which use this package.
+func (enc *Encoding) _encodeV1(src []byte) []byte {
 	if len(src) == 0 {
 		return []byte{}
 	}
 	dst := make([]byte, 0, len(src)*9/5)
 	encoder := newEncoder(src)
 	return encoder.encode(dst, enc.encode[:])
+}
+
+func (enc *Encoding) _encodeV2(src []byte) []byte {
+	if len(src) == 0 {
+		return []byte{}
+	}
+	dst := make([]byte, 0, len(src)*9/5)
+	encoder := newEncoder(src)
+	return encoder.encodeV2(dst, enc.encode[:])
 }
 
 // EncodeToString returns a base62 string representation of src.
@@ -67,7 +85,7 @@ func (enc *Encoding) EncodeToBuf(dst []byte, src []byte) []byte {
 		return []byte{}
 	}
 	encoder := newEncoder(src)
-	return encoder.encode(dst, enc.encode[:])
+	return encoder.encodeV2(dst, enc.encode[:])
 }
 
 type encoder struct {
@@ -125,6 +143,35 @@ func (enc *encoder) encode(dst []byte, encTable []byte) []byte {
 		x, hasMore = enc.next()
 	}
 	return dst
+}
+
+func (enc *encoder) encodeV2(dst []byte, encTable []byte) []byte {
+	for enc.pos > 0 {
+		size := 6
+		b := enc.get6bits()
+		if b&compactMask == compactMask {
+			if enc.pos > 6 || b > mask5bits {
+				size = 5
+			}
+			b &= mask5bits
+		}
+		dst = append(dst, encTable[b])
+		enc.pos -= size
+	}
+	return dst
+}
+
+func (enc *encoder) get6bits() byte {
+	r := enc.pos & 0x7
+	i := enc.pos >> 3
+	if r == 0 {
+		i, r = i-1, 8
+	}
+	b := enc.src[i] >> (8 - r)
+	if r < 6 && i > 0 {
+		b |= enc.src[i-1] << r
+	}
+	return b & mask6bits
 }
 
 type CorruptInputError int64

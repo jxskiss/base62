@@ -29,13 +29,20 @@ func Test_EncodeDecode(t *testing.T) {
 func Test_EncodeDecode_Zeros(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		src := make([]byte, i)
-		dst := Encode(src)
+		dst := StdEncoding._encodeV1(src)
 		got, err := Decode(dst)
 		if err != nil {
 			t.Fatalf("failed decode: err = %v", err)
 		}
 		if !bytes.Equal(src, got) {
 			t.Fatalf("failed decode, got = %v, want = %v", got, src)
+		}
+
+		// Make sure the new implementation is compatible with the old.
+		v2Dst := StdEncoding._encodeV2(src)
+		if !bytes.Equal(dst, v2Dst) {
+			t.Logf("src= %v\n  v1= %v\n  v2= %v", src, dst, v2Dst)
+			t.Fatalf("encode new implementation not equal to v1")
 		}
 	}
 }
@@ -46,13 +53,20 @@ func Test_EncodeDecode_0xFF(t *testing.T) {
 		for i := range src {
 			src[i] = 0xff
 		}
-		dst := Encode(src)
+		dst := StdEncoding._encodeV1(src)
 		got, err := Decode(dst)
 		if err != nil {
 			t.Fatalf("failed decode: err = %v", err)
 		}
 		if !bytes.Equal(src, got) {
 			t.Fatalf("failed decode, got = %v, want = %v", got, src)
+		}
+
+		// Make sure the new implementation is compatible with the old.
+		v2Dst := StdEncoding._encodeV2(src)
+		if !bytes.Equal(dst, v2Dst) {
+			t.Logf("src= %v\n  v1= %v\n  v2= %v", src, dst, v2Dst)
+			t.Fatalf("encode new implementation not equal to v1")
 		}
 	}
 }
@@ -61,13 +75,20 @@ func Test_EncodeDecode_RandomBytes(t *testing.T) {
 	for i := 0; i < 1000000; i++ {
 		src := make([]byte, 32+mathrand.Intn(32))
 		_, _ = rand.Read(src)
-		dst := Encode(src)
+		dst := StdEncoding._encodeV1(src)
 		got, err := Decode(dst)
 		if err != nil {
 			t.Fatalf("failed decode, err = %v", err)
 		}
 		if !bytes.Equal(src, got) {
 			t.Fatalf("failed decode, got = %v, want = %v", got, src)
+		}
+
+		// Make sure the new implementation is compatible with the old.
+		v2Dst := StdEncoding._encodeV2(src)
+		if !bytes.Equal(dst, v2Dst) {
+			t.Logf("src= %v\n  v1= %v\n  v2= %v", src, dst, v2Dst)
+			t.Fatalf("encode new implementation not equal to v1")
 		}
 	}
 }

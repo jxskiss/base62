@@ -37,9 +37,15 @@ func encodeWithBigInt(b []byte) []byte {
 	return ret
 }
 
-func Benchmark_Encode(bb *testing.B) {
+func Benchmark_Encode_V2(bb *testing.B) {
 	for i := 0; i < bb.N; i++ {
-		_ = Encode(testRandBytes)
+		_ = StdEncoding._encodeV2(testRandBytes)
+	}
+}
+
+func Benchmark_Encode_legacyV1(bb *testing.B) {
+	for i := 0; i < bb.N; i++ {
+		_ = StdEncoding._encodeV1(testRandBytes)
 	}
 }
 
